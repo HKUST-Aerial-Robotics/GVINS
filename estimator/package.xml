@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package>
+  <name>gvins</name>
+  <version>1.0.0</version>
+  <description>The GVINS package</description>
+
+  <maintainer email="shaozu.cao@gmail.com">CAO Shaozu</maintainer>
+
+  <license>GPLv3</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>message_generation</build_depend>
+  <build_depend>gnss_comm</build_depend>
+
+  <run_depend>roscpp</run_depend>
+  <run_depend>message_generation</run_depend>
+  <run_depend>gnss_comm</run_depend>
+
+  <export></export>
+</package>
