@@ -221,7 +221,6 @@ void Estimator::processImage(const map<int, vector<pair<int, Eigen::Matrix<doubl
         slideWindow();
         f_manager.removeFailures();
         ROS_DEBUG("marginalization costs: %fms", t_margin.toc());
-        // prepare output of VINS
         key_poses.clear();
         for (int i = 0; i <= WINDOW_SIZE; i++)
             key_poses.push_back(Ps[i]);

@@ -17,6 +17,12 @@ find_package(catkin REQUIRED COMPONENTS
     gnss_comm
 )
 
+add_message_files(
+  DIRECTORY msg
+  FILES visensor_external_trigger.msg
+)
+generate_messages(DEPENDENCIES std_msgs)
+
 find_package(OpenCV REQUIRED)
 
 find_package(Ceres REQUIRED)
@@ -55,7 +61,6 @@ add_executable(${PROJECT_NAME}
     src/initial/initial_sfm.cpp
     src/initial/initial_ex_rotation.cpp
     src/initial/gnss_vi_initializer.cpp
-    )
-
+)
 
 target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${OpenCV_LIBS} ${CERES_LIBRARIES})

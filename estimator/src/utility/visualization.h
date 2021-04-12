@@ -17,13 +17,10 @@
 #include <tf/transform_broadcaster.h>
 #include "CameraPoseVisualization.h"
 #include <eigen3/Eigen/Dense>
-#include "../estimator.h"
-#include "../parameters.h"
-#include "mono_gnss_vins_estimator/SatelliteInfo.h"
-#include "mono_gnss_vins_estimator/MultiSatelliteInfo.h"
 #include <gnss_comm/gnss_ros.hpp>
 
-using namespace mono_gnss_vins_estimator;
+#include "../estimator.h"
+#include "../parameters.h"
 
 extern ros::Publisher pub_odometry;
 extern ros::Publisher pub_path, pub_pose;

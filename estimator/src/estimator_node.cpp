@@ -10,7 +10,7 @@
 #include <opencv2/opencv.hpp>
 #include <gnss_comm/gnss_ros.hpp>
 #include <gnss_comm/gnss_utility.hpp>
-#include <visensor_node/visensor_external_trigger.h>
+#include <gvins/visensor_external_trigger.h>
 #include <sensor_msgs/NavSatFix.h>
 
 #include "estimator.h"
@@ -264,7 +264,7 @@ void feature_callback(const sensor_msgs::PointCloudConstPtr &feature_msg)
     }
 }
 
-void visensor_trigger_callback(const visensor_node::visensor_external_triggerConstPtr &trigger_msg)
+void visensor_trigger_callback(const gvins::visensor_external_triggerConstPtr &trigger_msg)
 {
     std::lock_guard<std::mutex> lg(m_time);
 
@@ -419,7 +419,7 @@ void process()
 
 int main(int argc, char **argv)
 {
-    ros::init(argc, argv, "vins_estimator");
+    ros::init(argc, argv, "gvins");
     ros::NodeHandle n("~");
     ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Info);
     readParameters(n);

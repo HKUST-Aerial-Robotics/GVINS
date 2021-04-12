@@ -1,9 +1,9 @@
 <launch>
-    <arg name="config_path" default = "$(find mono_gnss_feature_tracker)/../config/simulator/simulator_config.yaml" />
-	  <arg name="vins_path" default = "$(find mono_gnss_feature_tracker)/../config/../" />
+    <arg name="config_path" default = "$(find gvins)/../config/simulator/simulator_config.yaml" />
+	  <arg name="vins_path" default = "$(find gvins)/../config/../" />
 
     <remap from="/mono_gnss_feature_tracker/feature" to="/simulator/feature" />
-    <node name="vins_estimator" pkg="mono_gnss_vins_estimator" type="mono_gnss_vins_estimator" output="screen">
+    <node name="gvins" pkg="gvins" type="gvins" output="screen">
        <param name="config_file" type="string" value="$(arg config_path)" />
        <param name="vins_folder" type="string" value="$(arg vins_path)" />
     </node>
