@@ -3,9 +3,10 @@
 
 #include <vector>
 #include <eigen3/Eigen/Dense>
-#include <glog/logging.h>
+
 #include <gnss_comm/gnss_utility.hpp>
 #include <gnss_comm/gnss_spp.hpp>
+
 #include "../feature_manager.h"
 
 using namespace gnss_comm;

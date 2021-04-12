@@ -26,7 +26,7 @@ bool GNSSVIInitializer::coarse_localization(Eigen::Matrix<double, 7, 1> &result)
     Eigen::Matrix<double, 7, 1> xyzt = psr_pos(accum_obs, accum_ephems, iono_params);
     if (xyzt.topLeftCorner<3, 1>().norm() == 0)
     {
-        LOG(ERROR) << "Failed to obtain a rough reference location.";
+        std::cerr << "Failed to obtain a rough reference location.\n";
         return false;
     }
 
@@ -88,7 +88,7 @@ bool GNSSVIInitializer::yaw_alignment(const std::vector<Eigen::Vector3d> &local_
 
     if (align_iter > MAX_ITERATION)
     {
-        LOG(ERROR) << "Fail to initialize yaw offset.\n";
+        std::cerr << "Fail to initialize yaw offset.\n";
         return false;
     }
 
@@ -163,7 +163,7 @@ bool GNSSVIInitializer::anchor_refinement(const std::vector<Eigen::Vector3d> &lo
 
     if (refine_iter > MAX_ITERATION)
     {
-        LOG(ERROR) << "Fail to perform anchor refinement.\n";
+        std::cerr << "Fail to perform anchor refinement.\n";
         return false;
     }
 

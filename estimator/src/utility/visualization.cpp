@@ -199,6 +199,8 @@ void pubGnssResult(const Estimator &estimator, const std_msgs::Header &header)
     const double gnss_ts = estimator.Headers[WINDOW_SIZE].stamp.toSec() + 
         estimator.diff_t_gnss_local;
     Eigen::Vector3d lla_pos = ecef2geo(estimator.ecef_pos);
+    printf("Global time: %f\n", gnss_ts);
+    printf("Latitude Longitude Altitude: %f, %f, %f\n", lla_pos.x(), lla_pos.y(), lla_pos.z());
     sensor_msgs::NavSatFix gnss_lla_msg;
     gnss_lla_msg.header.stamp = ros::Time(gnss_ts);
     gnss_lla_msg.header.frame_id = "geodetic";

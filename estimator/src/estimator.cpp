@@ -559,7 +559,7 @@ bool Estimator::visualInitialAlign()
     return true;
 }
 
-bool Estimator::GNSSVIAlign_2()
+bool Estimator::GNSSVIAlign()
 {
     if (solver_flag == INITIAL)     // visual-inertial not initialized
         return false;
@@ -580,7 +580,7 @@ bool Estimator::GNSSVIAlign_2()
     avg_hor_vel /= (WINDOW_SIZE+1);
     if (avg_hor_vel.norm() < 0.3)
     {
-        LOG(INFO) << "velocity excitation not enough for GNSS-VI alignment.";
+        std::cerr << "velocity excitation not enough for GNSS-VI alignment.\n";
         return false;
     }
 
@@ -599,7 +599,7 @@ bool Estimator::GNSSVIAlign_2()
     rough_xyzt.setZero();
     if (!gnss_vi_initializer.coarse_localization(rough_xyzt))
     {
-        LOG(ERROR) << "Fail to obtain a coarse location.\n";
+        std::cerr << "Fail to obtain a coarse location.\n";
         return false;
     }
 
@@ -612,11 +612,10 @@ bool Estimator::GNSSVIAlign_2()
     double aligned_rcv_ddt = 0;
     if (!gnss_vi_initializer.yaw_alignment(local_vs, rough_anchor_ecef, aligned_yaw, aligned_rcv_ddt))
     {
-        LOG(ERROR) << "Fail to align ENU and local frames.\n";
+        std::cerr << "Fail to align ENU and local frames.\n";
         return false;
     }
-
-    LOG(INFO) << "aligned_yaw is " << aligned_yaw*180.0/M_PI;
+    // std::cout << "aligned_yaw is " << aligned_yaw*180.0/M_PI << '\n';
 
     // 3. perform anchor refinement
     std::vector<Eigen::Vector3d> local_ps;
@@ -627,12 +626,11 @@ bool Estimator::GNSSVIAlign_2()
     if (!gnss_vi_initializer.anchor_refinement(local_ps, aligned_yaw, 
         aligned_rcv_ddt, rough_xyzt, refined_xyzt))
     {
-        LOG(ERROR) << "Fail to refine anchor point.\n";
+        std::cerr << "Fail to refine anchor point.\n";
         return false;
     }
-
-    LOG(INFO) << "refined anchor point is " << std::setprecision(20) 
-              << refined_xyzt.head<3>().transpose();
+    // std::cout << "refined anchor point is " << std::setprecision(20) 
+    //           << refined_xyzt.head<3>().transpose() << '\n';
 
     // restore GNSS states
     uint32_t one_observed_sys = static_cast<uint32_t>(-1);
@@ -659,192 +657,6 @@ bool Estimator::GNSSVIAlign_2()
     R_ecef_enu = ecef2rotation(ref_ecef);
 
     yaw_enu_local = aligned_yaw;
-
-    return true;
-}
-
-bool Estimator::GNSSVIAlign()
-{
-    if (solver_flag == INITIAL)     // visual-inertial not initialized
-        return false;
-    
-    if (gnss_ready)                 // GNSS-VI already initialized
-        return true;
-
-    for (uint32_t i = 0; i < (WINDOW_SIZE+1); ++i)
-    {
-        if (gnss_meas_buf[i].empty() || gnss_meas_buf[i].size() < 10)
-            return false;
-    }
-
-    // check horizontal velocity excitation
-    Eigen::Vector2d avg_hor_vel(0.0, 0.0);
-    for (uint32_t i = 0; i < (WINDOW_SIZE+1); ++i)
-        avg_hor_vel += Vs[i].head<2>().cwiseAbs();
-    avg_hor_vel /= (WINDOW_SIZE+1);
-    if (avg_hor_vel.norm() < 0.3)
-    {
-        LOG(INFO) << "velocity excitation not enough for GNSS-VI alignment.";
-        return false;
-    }
-
-    // get a rough SPP location
-    std::vector<ObsPtr> accum_obs;
-    std::vector<EphemBasePtr> accum_ephems;
-    for (uint32_t i = 0; i < (WINDOW_SIZE+1); ++i)
-    {
-        std::copy(gnss_meas_buf[i].begin(), gnss_meas_buf[i].end(), std::back_inserter(accum_obs));
-        std::copy(gnss_ephem_buf[i].begin(), gnss_ephem_buf[i].end(), std::back_inserter(accum_ephems));
-    }
-    Eigen::Matrix<double, 7, 1> xyzt = psr_pos(accum_obs, accum_ephems, latest_gnss_iono_params);
-    if (xyzt.topLeftCorner<3, 1>().norm() == 0)
-    {
-        LOG(ERROR) << "Failed to obtain a rough reference location.";
-        return false;
-    }
-    for (uint32_t k = 0; k < 4; ++k)
-    {
-        if (fabs(xyzt(k+3)) < 1)
-            xyzt(k+3) = 0;          // not observed yet
-    }
-    
-    Eigen::Vector3d rough_ecef = xyzt.head<3>();
-    Eigen::Matrix3d rough_R_ecef_enu = ecef2rotation(rough_ecef);
-    uint32_t num_meas = 0;
-    std::vector<std::vector<SatStatePtr>> all_sat_states;
-    for (uint32_t i = 0; i < (WINDOW_SIZE+1); ++i)
-    {
-        num_meas += gnss_meas_buf[i].size();
-        all_sat_states.push_back(sat_states(gnss_meas_buf[i], gnss_ephem_buf[i]));
-    }
-    
-    // calibrate yaw offset and receiver clock drift rate
-    double align_ddt = 0;
-    double align_yaw = 0;
-    const uint32_t ALIGN_MAX_ITERATION = 10;
-    const double ALIGN_EPSILON = 1e-5;
-    uint32_t align_iter = 0;
-    double align_dx_norm = 1.0;
-    while (align_iter < ALIGN_MAX_ITERATION && align_dx_norm > ALIGN_EPSILON)
-    {
-        Eigen::MatrixXd align_G(num_meas, 2);
-        align_G.setZero();
-        align_G.col(1).setOnes();
-        Eigen::VectorXd align_b(num_meas);
-        align_b.setZero();
-        Eigen::Matrix3d align_R_enu_local(Eigen::AngleAxisd(align_yaw, Eigen::Vector3d::UnitZ()));
-        Eigen::Matrix3d align_tmp_M;
-        align_tmp_M << -sin(align_yaw), -cos(align_yaw), 0,
-                        cos(align_yaw), -sin(align_yaw), 0,
-                        0       , 0        , 0;
-        
-        uint32_t align_counter = 0;
-        for (uint32_t i = 0; i < (WINDOW_SIZE+1); ++i)
-        {
-            Eigen::Matrix<double, 4, 1> ecef_vel_ddt;
-            ecef_vel_ddt.head<3>() = rough_R_ecef_enu * align_R_enu_local * Vs[i];
-            ecef_vel_ddt(3) = align_ddt;
-            Eigen::VectorXd epoch_res;
-            Eigen::MatrixXd epoch_J;
-            dopp_res(ecef_vel_ddt, rough_ecef, gnss_meas_buf[i], all_sat_states[i], epoch_res, epoch_J);
-            align_b.segment(align_counter, gnss_meas_buf[i].size()) = epoch_res;
-            align_G.block(align_counter, 0, gnss_meas_buf[i].size(), 1) = 
-                epoch_J.leftCols(3)*rough_R_ecef_enu*align_tmp_M*Vs[i];
-            align_counter += gnss_meas_buf[i].size();
-        }
-        Eigen::VectorXd dx = -(align_G.transpose()*align_G).inverse() * align_G.transpose() * align_b;
-        align_yaw += dx(0);
-        align_ddt += dx(1);
-        align_dx_norm = dx.norm();
-        ++ align_iter;
-    }
-    // LOG(INFO) << "align_yaw is " << align_yaw*180.0/M_PI;
-    // LOG(INFO) << "align_ddt is " << align_ddt;
-    if (align_iter > ALIGN_MAX_ITERATION)
-    {
-        LOG(ERROR) << "Fail to initialize yaw offset.\n";
-        return false;
-    }
-    Eigen::Matrix3d aligned_R_enu_local(Eigen::AngleAxisd(align_yaw, Eigen::Vector3d::UnitZ()));
-
-    // refine anchor point and receiver clock bias
-    Eigen::Vector4d refine_dt = xyzt.tail<4>();
-    Eigen::Vector3d refine_anchor = rough_ecef;
-    const uint32_t REFINE_MAX_ITERATION = 10;
-    const double REFINE_EPSILON = 1e-5;
-    uint32_t refine_iter = 0;
-    double refine_dx_norm = 1.0;
-    std::vector<uint32_t> unobserved_sys;
-    for (uint32_t k = 0; k < 4; ++k)
-    {
-        if (xyzt(3+k) == 0)
-            unobserved_sys.push_back(k);
-    }
-
-    while (refine_iter < REFINE_MAX_ITERATION && refine_dx_norm > REFINE_EPSILON)
-    {
-        Eigen::MatrixXd refine_G(num_meas+unobserved_sys.size(), 7);
-        Eigen::VectorXd refine_b(num_meas+unobserved_sys.size());
-        refine_G.setZero();
-        refine_b.setZero();
-        uint32_t refine_counter = 0;
-        Eigen::Matrix3d refine_R_ecef_enu = ecef2rotation(refine_anchor);
-        Eigen::Matrix3d refine_R_ecef_local = refine_R_ecef_enu * aligned_R_enu_local;
-        for (uint32_t i = 0; i < (WINDOW_SIZE+1); ++i)
-        {
-            Eigen::Matrix<double, 7, 1> ecef_xyz_dt;
-            ecef_xyz_dt.head<3>() = refine_R_ecef_local * Ps[i] + refine_anchor;
-            ecef_xyz_dt.tail<4>() = refine_dt + align_ddt * i * Eigen::Vector4d::Ones();
-
-            Eigen::VectorXd epoch_res;
-            Eigen::MatrixXd epoch_J;
-            std::vector<Eigen::Vector2d> tmp_atmos_delay, tmp_sv_azel;
-            psr_res(ecef_xyz_dt, gnss_meas_buf[i], all_sat_states[i], latest_gnss_iono_params, 
-                epoch_res, epoch_J, tmp_atmos_delay, tmp_sv_azel);
-            refine_b.segment(refine_counter, gnss_meas_buf[i].size()) = epoch_res;
-            refine_G.middleRows(refine_counter, gnss_meas_buf[i].size()) = epoch_J;
-            refine_counter += gnss_meas_buf[i].size();
-        }
-        for (uint32_t k : unobserved_sys)
-        {
-            refine_b(refine_counter) = 0;
-            refine_G(refine_counter, k+3) = 1.0;
-            ++ refine_counter;
-        }
-
-        Eigen::VectorXd dx = -(refine_G.transpose()*refine_G).inverse() * refine_G.transpose() * refine_b;
-        refine_anchor += dx.head<3>();
-        refine_dt += dx.tail<4>();
-        refine_dx_norm = dx.norm();
-        ++ refine_iter;
-        LOG(INFO) << "refine dx norm is " << refine_dx_norm;
-    }
-
-    // restore optimized value
-    uint32_t one_observed_sys = static_cast<uint32_t>(-1);
-    for (uint32_t k = 0; k < 4; ++k)
-    {
-        if (xyzt(k+3) != 0)
-        {
-            one_observed_sys = k;
-            break;
-        }
-    }
-    for (uint32_t i = 0; i < (WINDOW_SIZE+1); ++i)
-    {
-        para_rcv_ddt[i] = align_ddt;
-        for (uint32_t k = 0; k < 4; ++k)
-        {
-            if (xyzt(k+3) == 0)
-                para_rcv_dt[i*4+k] = refine_dt(one_observed_sys) + align_ddt * i;
-            else
-                para_rcv_dt[i*4+k] = refine_dt(k) + align_ddt * i;
-        }
-    }
-    ref_ecef = refine_anchor;
-    R_ecef_enu = ecef2rotation(ref_ecef);
-
-    yaw_enu_local = align_yaw;
 
     return true;
 }
@@ -904,7 +716,7 @@ void Estimator::solveOdometry()
         {
             if (!gnss_ready)
             {
-                gnss_ready = GNSSVIAlign_2();
+                gnss_ready = GNSSVIAlign();
             }
             if (gnss_ready)
             {
@@ -1000,12 +812,6 @@ void Estimator::double2vector()
             ref_ecef(k) = para_ref_ecef[k];
         R_ecef_enu = ecef2rotation(ref_ecef);
     }
-
-    double dt_diff1 = para_rcv_dt[4*WINDOW_SIZE+1] - para_rcv_dt[4*WINDOW_SIZE];
-    double dt_diff2 = para_rcv_dt[4*WINDOW_SIZE+2] - para_rcv_dt[4*WINDOW_SIZE];
-    double dt_diff3 = para_rcv_dt[4*WINDOW_SIZE+3] - para_rcv_dt[4*WINDOW_SIZE];
-    LOG(INFO) << "rcv_dt is " << para_rcv_dt[4*WINDOW_SIZE+1] << " "
-              << dt_diff1 << " " << dt_diff2 << " " << dt_diff3 << '\n';
 }
 
 bool Estimator::failureDetection()
@@ -1092,10 +898,10 @@ void Estimator::optimization()
         for (uint32_t i = 0; i <= WINDOW_SIZE; ++i)
             avg_hor_vel += Vs[i].head<2>().cwiseAbs();
         avg_hor_vel /= (WINDOW_SIZE+1);
-        // cerr << "avg_vel is " << avg_vel << endl;
+        // cerr << "avg_hor_vel is " << avg_vel << endl;
         if (avg_hor_vel.norm() < 0.3)
         {
-            // LOG(INFO) << "velocity excitation not enough, fix yaw angle.";
+            // std::cerr << "velocity excitation not enough, fix yaw angle.\n";
             problem.SetParameterBlockConstant(para_yaw_enu_local);
         }
 
@@ -1292,26 +1098,15 @@ void Estimator::optimization()
 
     while(para_yaw_enu_local[0] > M_PI)   para_yaw_enu_local[0] -= 2.0*M_PI;
     while(para_yaw_enu_local[0] < -M_PI)  para_yaw_enu_local[0] += 2.0*M_PI;
-    std::cerr << "yaw is " << para_yaw_enu_local[0]*180/M_PI << std::endl;
-    LOG(INFO) << "rcv_ddt is " << para_rcv_ddt[WINDOW_SIZE];
-    LOG(INFO) << "rcv_dt is " << std::setprecision(10) << para_rcv_dt[WINDOW_SIZE] << ' ' << para_rcv_dt[WINDOW_SIZE+1]
-              << ' ' << para_rcv_dt[WINDOW_SIZE+2] << ' ' << para_rcv_dt[WINDOW_SIZE+3];
+    // std::cout << "yaw is " << para_yaw_enu_local[0]*180/M_PI << std::endl;
 
     ++ optim_counter;
-    /* for (uint32_t i = 0; i < (WINDOW_SIZE+1); ++i)
-    {
-        std::cerr << "rcv_dt[" << i << "] is: ";
-        for (uint32_t k = 0; k < 4; ++k)
-            std::cerr << para_rcv_dt[i*4+k] << ' ';
-        std::cerr << '\n';
-    } */
 
     double2vector();
 
     TicToc t_whole_marginalization;
     if (marginalization_flag == MARGIN_OLD)
     {
-        LOG(INFO) << "Margin old";
         MarginalizationInfo *marginalization_info = new MarginalizationInfo();
         vector2double();
 
@@ -1474,7 +1269,6 @@ void Estimator::optimization()
     }
     else
     {
-        LOG(INFO) << "Margin new";
         if (last_marginalization_info &&
             std::count(std::begin(last_marginalization_parameter_blocks), std::end(last_marginalization_parameter_blocks), para_Pose[WINDOW_SIZE - 1]))
         {

@@ -57,7 +57,6 @@ class Estimator
     bool visualInitialAlign();
     // GNSS related
     bool GNSSVIAlign();
-    bool GNSSVIAlign_2();
 
     void updateGNSSStatistics();
 
