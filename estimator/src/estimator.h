@@ -26,7 +26,6 @@
 #include "factor/pos_vel_factor.hpp"
 #include "factor/pose_anchor_factor.h"
 
-#include <queue>
 #include <opencv2/core/eigen.hpp>
 
 #include <gnss_comm/gnss_utility.hpp>
@@ -111,7 +110,7 @@ class Estimator
 
     // GNSS related
     bool gnss_ready;
-    Eigen::Vector3d ref_ecef;
+    Eigen::Vector3d anc_ecef;
     Eigen::Matrix3d R_ecef_enu;
     double yaw_enu_local;
     std::vector<ObsPtr> gnss_meas_buf[(WINDOW_SIZE+1)];
@@ -120,7 +119,7 @@ class Estimator
     std::map<uint32_t, std::vector<EphemBasePtr>> sat2ephem;
     std::map<uint32_t, std::map<double, size_t>> sat2time_index;
     std::map<uint32_t, uint32_t> sat_track_status;
-    double para_ref_ecef[3];
+    double para_anc_ecef[3];
     double para_yaw_enu_local[1];
     double para_rcv_dt[(WINDOW_SIZE+1)*4];
     double para_rcv_ddt[WINDOW_SIZE+1];

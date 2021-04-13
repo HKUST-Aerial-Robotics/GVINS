@@ -18,7 +18,7 @@ ros::Publisher pub_extrinsic;
 ros::Publisher pub_gnss_lla;
 ros::Publisher pub_enu_path, pub_rtk_enu_path;
 nav_msgs::Path enu_path, rtk_enu_path;
-ros::Publisher pub_ref_lla;
+ros::Publisher pub_anc_lla;
 ros::Publisher pub_enu_pose;
 ros::Publisher pub_sat_info;
 ros::Publisher pub_yaw_enu_local;
@@ -45,7 +45,7 @@ void registerPub(ros::NodeHandle &n)
     pub_relo_relative_pose=  n.advertise<nav_msgs::Odometry>("relo_relative_pose", 1000);
     pub_gnss_lla = n.advertise<sensor_msgs::NavSatFix>("gnss_fused_lla", 1000);
     pub_enu_path = n.advertise<nav_msgs::Path>("gnss_enu_path", 1000);
-    pub_ref_lla = n.advertise<sensor_msgs::NavSatFix>("gnss_anchor_lla", 1000);
+    pub_anc_lla = n.advertise<sensor_msgs::NavSatFix>("gnss_anchor_lla", 1000);
     pub_enu_pose = n.advertise<geometry_msgs::PoseStamped>("enu_pose", 1000);
 
     cameraposevisual.setScale(1);
@@ -210,13 +210,13 @@ void pubGnssResult(const Estimator &estimator, const std_msgs::Header &header)
     pub_gnss_lla.publish(gnss_lla_msg);
 
     // publish anchor LLA
-    const Eigen::Vector3d ref_lla = ecef2geo(estimator.ref_ecef);
-    sensor_msgs::NavSatFix ref_lla_msg;
-    ref_lla_msg.header = gnss_lla_msg.header;
-    ref_lla_msg.latitude = ref_lla.x();
-    ref_lla_msg.longitude = ref_lla.y();
-    ref_lla_msg.altitude = ref_lla.z();
-    pub_ref_lla.publish(ref_lla_msg);
+    const Eigen::Vector3d anc_lla = ecef2geo(estimator.anc_ecef);
+    sensor_msgs::NavSatFix anc_lla_msg;
+    anc_lla_msg.header = gnss_lla_msg.header;
+    anc_lla_msg.latitude = anc_lla.x();
+    anc_lla_msg.longitude = anc_lla.y();
+    anc_lla_msg.altitude = anc_lla.z();
+    pub_anc_lla.publish(anc_lla_msg);
 
     // publish ENU pose and path
     geometry_msgs::PoseStamped enu_pose_msg;
@@ -272,9 +272,9 @@ void pubGnssResult(const Estimator &estimator, const std_msgs::Header &header)
                 << estimator.para_rcv_dt[(WINDOW_SIZE)*4+2] << ','
                 << estimator.para_rcv_dt[(WINDOW_SIZE)*4+3] << ','
                 << estimator.para_rcv_ddt[WINDOW_SIZE] << ','
-                << estimator.ref_ecef(0) << ','
-                << estimator.ref_ecef(1) << ','
-                << estimator.ref_ecef(2) << '\n';
+                << estimator.anc_ecef(0) << ','
+                << estimator.anc_ecef(1) << ','
+                << estimator.anc_ecef(2) << '\n';
     gnss_output.close();
 }
 

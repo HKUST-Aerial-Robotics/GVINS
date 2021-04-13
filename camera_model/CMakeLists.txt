@@ -22,7 +22,7 @@ include_directories(${CERES_INCLUDE_DIRS})
 
 catkin_package(
     INCLUDE_DIRS include
-    LIBRARIES mono_gnss_camera_model
+    LIBRARIES gvins_camera_model
     CATKIN_DEPENDS roscpp std_msgs
 #    DEPENDS system_lib
     )

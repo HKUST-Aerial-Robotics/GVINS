@@ -65,7 +65,7 @@ void Estimator::clearState()
     td = TD;
 
     gnss_ready = false;
-    ref_ecef.setZero();
+    anc_ecef.setZero();
     R_ecef_enu.setIdentity();
     para_yaw_enu_local[0] = 0;
     yaw_enu_local = 0;
@@ -652,8 +652,8 @@ bool Estimator::GNSSVIAlign()
                 para_rcv_dt[i*4+k] = refined_xyzt(3+k) + aligned_rcv_ddt * i;
         }
     }
-    ref_ecef = refined_xyzt.head<3>();
-    R_ecef_enu = ecef2rotation(ref_ecef);
+    anc_ecef = refined_xyzt.head<3>();
+    R_ecef_enu = ecef2rotation(anc_ecef);
 
     yaw_enu_local = aligned_yaw;
 
@@ -666,7 +666,7 @@ void Estimator::updateGNSSStatistics()
     enu_pos = R_enu_local * Ps[WINDOW_SIZE];
     enu_vel = R_enu_local * Vs[WINDOW_SIZE];
     enu_ypr = Utility::R2ypr(R_enu_local*Rs[WINDOW_SIZE]);
-    ecef_pos = ref_ecef + R_ecef_enu * enu_pos;
+    ecef_pos = anc_ecef + R_ecef_enu * enu_pos;
 }
 
 
@@ -770,7 +770,7 @@ void Estimator::vector2double()
     
     para_yaw_enu_local[0] = yaw_enu_local;
     for (uint32_t k = 0; k < 3; ++k)
-        para_ref_ecef[k] = ref_ecef(k);
+        para_anc_ecef[k] = anc_ecef(k);
 }
 
 void Estimator::double2vector()
@@ -808,8 +808,8 @@ void Estimator::double2vector()
     {
         yaw_enu_local = para_yaw_enu_local[0];
         for (uint32_t k = 0; k < 3; ++k)
-            ref_ecef(k) = para_ref_ecef[k];
-        R_ecef_enu = ecef2rotation(ref_ecef);
+            anc_ecef(k) = para_anc_ecef[k];
+        R_ecef_enu = ecef2rotation(anc_ecef);
     }
 }
 
@@ -910,8 +910,8 @@ void Estimator::optimization()
                 problem.SetParameterBlockConstant(para_yaw_enu_local);
         }
         
-        problem.AddParameterBlock(para_ref_ecef, 3);
-        // problem.SetParameterBlockConstant(para_ref_ecef);
+        problem.AddParameterBlock(para_anc_ecef, 3);
+        // problem.SetParameterBlockConstant(para_anc_ecef);
 
         for (uint32_t i = 0; i <= WINDOW_SIZE; ++i)
         {
@@ -977,7 +977,7 @@ void Estimator::optimization()
                     curr_ephem[j], latest_gnss_iono_params, ts_ratio);
                 problem.AddResidualBlock(gnss_factor, NULL, para_Pose[lower_idx], 
                     para_SpeedBias[lower_idx], para_Pose[lower_idx+1], para_SpeedBias[lower_idx+1],
-                    para_rcv_dt+i*4+sys_idx, para_rcv_ddt+i, para_yaw_enu_local, para_ref_ecef);
+                    para_rcv_dt+i*4+sys_idx, para_rcv_ddt+i, para_yaw_enu_local, para_anc_ecef);
             }
         }
 
@@ -1166,7 +1166,7 @@ void Estimator::optimization()
                 ResidualBlockInfo *psr_dopp_residual_block_info = new ResidualBlockInfo(gnss_factor, NULL,
                     vector<double *>{para_Pose[0], para_SpeedBias[0], para_Pose[1], 
                         para_SpeedBias[1],para_rcv_dt+sys_idx, para_rcv_ddt, 
-                        para_yaw_enu_local, para_ref_ecef},
+                        para_yaw_enu_local, para_anc_ecef},
                     vector<int>{0, 1, 4, 5});
                 marginalization_info->addResidualBlockInfo(psr_dopp_residual_block_info);
             }
@@ -1257,7 +1257,7 @@ void Estimator::optimization()
             addr_shift[reinterpret_cast<long>(para_Td[0])] = para_Td[0];
         }
         addr_shift[reinterpret_cast<long>(para_yaw_enu_local)] = para_yaw_enu_local;
-        addr_shift[reinterpret_cast<long>(para_ref_ecef)] = para_ref_ecef;
+        addr_shift[reinterpret_cast<long>(para_anc_ecef)] = para_anc_ecef;
         vector<double *> parameter_blocks = marginalization_info->getParameterBlocks(addr_shift);
 
         if (last_marginalization_info)
@@ -1331,7 +1331,7 @@ void Estimator::optimization()
                 addr_shift[reinterpret_cast<long>(para_Td[0])] = para_Td[0];
             }
             addr_shift[reinterpret_cast<long>(para_yaw_enu_local)] = para_yaw_enu_local;
-            addr_shift[reinterpret_cast<long>(para_ref_ecef)] = para_ref_ecef;
+            addr_shift[reinterpret_cast<long>(para_anc_ecef)] = para_anc_ecef;
             vector<double *> parameter_blocks = marginalization_info->getParameterBlocks(addr_shift);
             if (last_marginalization_info)
                 delete last_marginalization_info;
