@@ -53,8 +53,8 @@ bool next_pulse_time_valid;
 double time_diff_gnss_local;
 bool time_diff_valid;
 double latest_gnss_time;
-double last_feature_time;
-uint64_t feature_counter;
+double tmp_last_feature_time;
+uint64_t feature_msg_counter;
 int skip_parameter;
 
 void predict(const sensor_msgs::ImuConstPtr &imu_msg)
@@ -236,23 +236,23 @@ void gnss_meas_callback(const GnssMeasMsgConstPtr &meas_msg)
 
 void feature_callback(const sensor_msgs::PointCloudConstPtr &feature_msg)
 {
-    ++ feature_counter;
+    ++ feature_msg_counter;
 
-    if (time_diff_valid)
+    if (skip_parameter < 0 && time_diff_valid)
     {
         const double this_feature_ts = feature_msg->header.stamp.toSec()+time_diff_gnss_local;
-        if (skip_parameter < 0 && latest_gnss_time > 0 && last_feature_time > 0)
+        if (latest_gnss_time > 0 && tmp_last_feature_time > 0)
         {
-            if (abs(this_feature_ts - latest_gnss_time) > abs(last_feature_time - latest_gnss_time))
-                skip_parameter = feature_counter%2;       // skip this frame and afterwards
+            if (abs(this_feature_ts - latest_gnss_time) > abs(tmp_last_feature_time - latest_gnss_time))
+                skip_parameter = feature_msg_counter%2;       // skip this frame and afterwards
             else
-                skip_parameter = 1 - (feature_counter%2);   // skip next frame and afterwards
+                skip_parameter = 1 - (feature_msg_counter%2);   // skip next frame and afterwards
         }
-        // cerr << "feature counter is " << feature_counter << ", skip parameter is " << int(skip_parameter) << endl;
-        last_feature_time = this_feature_ts;
+        // cerr << "feature counter is " << feature_msg_counter << ", skip parameter is " << int(skip_parameter) << endl;
+        tmp_last_feature_time = this_feature_ts;
     }
 
-    if (!GNSS_ENABLE || (skip_parameter >= 0 && int(feature_counter%2) != skip_parameter))
+    if (skip_parameter >= 0 && int(feature_msg_counter%2) != skip_parameter)
     {
         m_buf.lock();
         feature_buf.push(feature_msg);
@@ -441,9 +441,13 @@ int main(int argc, char **argv)
     next_pulse_time_valid = false;
     time_diff_valid = false;
     latest_gnss_time = -1;
-    last_feature_time = -1;
-    feature_counter = 0;
-    skip_parameter = -1;
+    tmp_last_feature_time = -1;
+    feature_msg_counter = 0;
+
+    if (GNSS_ENABLE)
+        skip_parameter = -1;
+    else
+        skip_parameter = 0;
 
     ros::Subscriber sub_imu = n.subscribe(IMU_TOPIC, 2000, imu_callback, ros::TransportHints().tcpNoDelay());
     ros::Subscriber sub_feature = n.subscribe("/gvins_feature_tracker/feature", 2000, feature_callback);
