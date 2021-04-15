@@ -270,8 +270,8 @@ void local_trigger_info_callback(const gvins::LocalSensorExternalTriggerConstPtr
         time_diff_gnss_local = next_pulse_time - trigger_msg->header.stamp.toSec();
         estimator_ptr->inputGNSSTimeDiff(time_diff_gnss_local);
         if (!time_diff_valid)       // just get calibrated
-            std::cout << "time difference between GNSS and VI-Sensor got calibrated\n";
-        // cerr << "time diff is " << std::setprecision(15) << time_diff_gnss_local << std::endl;
+            std::cout << "time difference between GNSS and VI-Sensor got calibrated: "
+                << std::setprecision(15) << time_diff_gnss_local << " s\n";
         time_diff_valid = true;
     }
 }

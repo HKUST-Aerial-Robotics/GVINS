@@ -16,13 +16,12 @@ double SOLVER_TIME;
 int NUM_ITERATIONS;
 int ESTIMATE_EXTRINSIC;
 int ESTIMATE_TD;
-int ROLLING_SHUTTER;
 std::string EX_CALIB_RESULT_PATH;
 std::string VINS_RESULT_PATH;
 std::string FACTOR_GRAPH_RESULT_PATH;
 std::string IMU_TOPIC;
 double ROW, COL;
-double TD, TR;
+double TD;
 
 bool GNSS_ENABLE;
 std::string GNSS_EPHEM_TOPIC;
@@ -141,17 +140,6 @@ void readParameters(ros::NodeHandle &n)
         ROS_INFO_STREAM("Unsynchronized sensors, online estimate time offset, initial td: " << TD);
     else
         ROS_INFO_STREAM("Synchronized sensors, fix time offset: " << TD);
-
-    ROLLING_SHUTTER = fsSettings["rolling_shutter"];
-    if (ROLLING_SHUTTER)
-    {
-        TR = fsSettings["rolling_shutter_tr"];
-        ROS_INFO_STREAM("rolling shutter camera, read out time per line: " << TR);
-    }
-    else
-    {
-        TR = 0;
-    }
 
     int gnss_enable_value = fsSettings["gnss_enable"];
     GNSS_ENABLE = (gnss_enable_value == 0 ? false : true);

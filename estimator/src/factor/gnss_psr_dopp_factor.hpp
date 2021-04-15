@@ -9,9 +9,6 @@
 #include <gnss_comm/gnss_utility.hpp>
 
 #define PSR_TO_DOPP_RATIO                   5
-#define GRADIENT_CHECK_STEP                 1e-5
-#define GRADIENT_CHECK_RELATIVE_TOLERANCE   1e-3
-#define GRADIENT_CHECK_ABSOLUTE_TOLERANCE   1e-6
 
 using namespace gnss_comm;
 
@@ -23,7 +20,7 @@ using namespace gnss_comm;
 **  parameters[4]: receiver clock bias in light travelling distance (m)
 **  parameters[5]: receiver clock bias change rate in clock bias light travelling distance per second (m/s)
 **  parameters[6]: yaw difference between ENU and local coordinate (rad)
-**  parameters[7]: reference point ECEF frame, only get estimated in initialization stage
+**  parameters[7]: anchor point's ECEF coordinate
 **  
  */
 class GnssPsrDoppFactor : public ceres::SizedCostFunction<2, 7, 9, 7, 9, 1, 1, 1, 3>

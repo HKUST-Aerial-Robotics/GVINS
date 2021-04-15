@@ -3,13 +3,12 @@
 using namespace ros;
 using namespace Eigen;
 ros::Publisher pub_odometry, pub_latest_odometry;
-ros::Publisher pub_path, pub_relo_path;
+ros::Publisher pub_path;
 ros::Publisher pub_point_cloud, pub_margin_cloud;
 ros::Publisher pub_key_poses;
-ros::Publisher pub_relo_relative_pose;
 ros::Publisher pub_camera_pose;
 ros::Publisher pub_camera_pose_visual;
-nav_msgs::Path path, relo_path;
+nav_msgs::Path path;
 
 ros::Publisher pub_keyframe_pose;
 ros::Publisher pub_keyframe_point;
@@ -32,7 +31,6 @@ void registerPub(ros::NodeHandle &n)
 {
     pub_latest_odometry = n.advertise<nav_msgs::Odometry>("imu_propagate", 1000);
     pub_path = n.advertise<nav_msgs::Path>("path", 1000);
-    pub_relo_path = n.advertise<nav_msgs::Path>("relocalization_path", 1000);
     pub_odometry = n.advertise<nav_msgs::Odometry>("odometry", 1000);
     pub_point_cloud = n.advertise<sensor_msgs::PointCloud>("point_cloud", 1000);
     pub_margin_cloud = n.advertise<sensor_msgs::PointCloud>("history_cloud", 1000);
@@ -42,7 +40,6 @@ void registerPub(ros::NodeHandle &n)
     pub_keyframe_pose = n.advertise<nav_msgs::Odometry>("keyframe_pose", 1000);
     pub_keyframe_point = n.advertise<sensor_msgs::PointCloud>("keyframe_point", 1000);
     pub_extrinsic = n.advertise<nav_msgs::Odometry>("extrinsic", 1000);
-    pub_relo_relative_pose=  n.advertise<nav_msgs::Odometry>("relo_relative_pose", 1000);
     pub_gnss_lla = n.advertise<sensor_msgs::NavSatFix>("gnss_fused_lla", 1000);
     pub_enu_path = n.advertise<nav_msgs::Path>("gnss_enu_path", 1000);
     pub_anc_lla = n.advertise<sensor_msgs::NavSatFix>("gnss_anchor_lla", 1000);
@@ -150,25 +147,6 @@ void pubOdometry(const Estimator &estimator, const std_msgs::Header &header)
         path.header.frame_id = "world";
         path.poses.push_back(pose_stamped);
         pub_path.publish(path);
-
-        Vector3d correct_t;
-        Vector3d correct_v;
-        Quaterniond correct_q;
-        correct_t = estimator.drift_correct_r * estimator.Ps[WINDOW_SIZE] + estimator.drift_correct_t;
-        correct_q = estimator.drift_correct_r * estimator.Rs[WINDOW_SIZE];
-        odometry.pose.pose.position.x = correct_t.x();
-        odometry.pose.pose.position.y = correct_t.y();
-        odometry.pose.pose.position.z = correct_t.z();
-        odometry.pose.pose.orientation.x = correct_q.x();
-        odometry.pose.pose.orientation.y = correct_q.y();
-        odometry.pose.pose.orientation.z = correct_q.z();
-        odometry.pose.pose.orientation.w = correct_q.w();
-
-        pose_stamped.pose = odometry.pose.pose;
-        relo_path.header = header;
-        relo_path.header.frame_id = "world";
-        relo_path.poses.push_back(pose_stamped);
-        pub_relo_path.publish(relo_path);
 
         // write result to file
         ofstream foutC(VINS_RESULT_PATH, ios::app);
@@ -506,22 +484,4 @@ void pubKeyframe(const Estimator &estimator)
         }
         pub_keyframe_point.publish(point_cloud);
     }
-}
-
-void pubRelocalization(const Estimator &estimator)
-{
-    nav_msgs::Odometry odometry;
-    odometry.header.stamp = ros::Time(estimator.relo_frame_stamp);
-    odometry.header.frame_id = "world";
-    odometry.pose.pose.position.x = estimator.relo_relative_t.x();
-    odometry.pose.pose.position.y = estimator.relo_relative_t.y();
-    odometry.pose.pose.position.z = estimator.relo_relative_t.z();
-    odometry.pose.pose.orientation.x = estimator.relo_relative_q.x();
-    odometry.pose.pose.orientation.y = estimator.relo_relative_q.y();
-    odometry.pose.pose.orientation.z = estimator.relo_relative_q.z();
-    odometry.pose.pose.orientation.w = estimator.relo_relative_q.w();
-    odometry.twist.twist.linear.x = estimator.relo_relative_yaw;
-    odometry.twist.twist.linear.y = estimator.relo_frame_index;
-
-    pub_relo_relative_pose.publish(odometry);
 }

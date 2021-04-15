@@ -34,9 +34,7 @@ extern std::string VINS_RESULT_PATH;
 extern std::string FACTOR_GRAPH_RESULT_PATH;
 extern std::string IMU_TOPIC;
 extern double TD;
-extern double TR;
 extern int ESTIMATE_TD;
-extern int ROLLING_SHUTTER;
 extern double ROW, COL;
 
 extern bool GNSS_ENABLE;
