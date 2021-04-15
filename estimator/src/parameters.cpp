@@ -28,7 +28,12 @@ bool GNSS_ENABLE;
 std::string GNSS_EPHEM_TOPIC;
 std::string GNSS_GLO_EPHEM_TOPIC;
 std::string GNSS_MEAS_TOPIC;
-std::vector<double> gnss_iono_paras;
+std::string GNSS_IONO_PARAMS_TOPIC;
+std::string GNSS_TP_INFO_TOPIC;
+std::vector<double> GNSS_IONO_DEFAULT_PARAMS;
+bool GNSS_LOCAL_ONLINE_SYNC;
+std::string LOCAL_TRIGGER_INFO_TOPIC;
+double GNSS_LOCAL_TIME_DIFF;
 double GNSS_ELEVATION_THRES;
 double GNSS_PSR_STD_THRES;
 double GNSS_DOPP_STD_THRES;
@@ -150,29 +155,41 @@ void readParameters(ros::NodeHandle &n)
 
     int gnss_enable_value = fsSettings["gnss_enable"];
     GNSS_ENABLE = (gnss_enable_value == 0 ? false : true);
-    fsSettings["gnss_ephem_topic"] >> GNSS_EPHEM_TOPIC;
-    fsSettings["gnss_glo_ephem_topic"] >> GNSS_GLO_EPHEM_TOPIC;
-    fsSettings["gnss_meas_topic"] >> GNSS_MEAS_TOPIC;
-    cv::Mat cv_iono;
-    fsSettings["gnss_iono_parameters"] >> cv_iono;
-    Eigen::Matrix<double, 1, 8> eigen_iono;
-    cv::cv2eigen(cv_iono, eigen_iono);
-    for (uint32_t i = 0; i < 8; ++i)
-        gnss_iono_paras.push_back(eigen_iono(0, i));
-    GNSS_ELEVATION_THRES = fsSettings["gnss_elevation_thres"];
-    const double gnss_ddt_sigma = fsSettings["gnss_ddt_sigma"];
-    GNSS_PSR_STD_THRES = fsSettings["gnss_psr_std_thres"];
-    GNSS_DOPP_STD_THRES = fsSettings["gnss_dopp_std_thres"];
-    const double track_thres = fsSettings["gnss_track_num_thres"];
-    GNSS_TRACK_NUM_THRES = static_cast<uint32_t>(track_thres);
-    GNSS_DDT_WEIGHT = 1.0 / gnss_ddt_sigma;
-    GNSS_RESULT_PATH = OUTPUT_PATH + "/gnss_result.csv";
-    // clear output file
-    std::ofstream gnss_output(GNSS_RESULT_PATH, std::ios::out);
-    gnss_output.close();
 
     if (GNSS_ENABLE)
+    {
+        fsSettings["gnss_ephem_topic"] >> GNSS_EPHEM_TOPIC;
+        fsSettings["gnss_glo_ephem_topic"] >> GNSS_GLO_EPHEM_TOPIC;
+        fsSettings["gnss_meas_topic"] >> GNSS_MEAS_TOPIC;
+        fsSettings["gnss_iono_params_topic"] >> GNSS_IONO_PARAMS_TOPIC;
+        cv::Mat cv_iono;
+        fsSettings["gnss_iono_parameters"] >> cv_iono;
+        Eigen::Matrix<double, 1, 8> eigen_iono;
+        cv::cv2eigen(cv_iono, eigen_iono);
+        for (uint32_t i = 0; i < 8; ++i)
+            GNSS_IONO_DEFAULT_PARAMS.push_back(eigen_iono(0, i));
+        
+        fsSettings["gnss_tp_info_topic"] >> GNSS_TP_INFO_TOPIC;
+        int gnss_local_online_sync_value = fsSettings["gnss_local_online_sync"];
+        GNSS_LOCAL_ONLINE_SYNC = (gnss_local_online_sync_value == 0 ? false : true);
+        if (GNSS_LOCAL_ONLINE_SYNC)
+            fsSettings["local_trigger_info_topic"] >> LOCAL_TRIGGER_INFO_TOPIC;
+        else
+            GNSS_LOCAL_TIME_DIFF = fsSettings["gnss_local_time_diff"];
+
+        GNSS_ELEVATION_THRES = fsSettings["gnss_elevation_thres"];
+        const double gnss_ddt_sigma = fsSettings["gnss_ddt_sigma"];
+        GNSS_PSR_STD_THRES = fsSettings["gnss_psr_std_thres"];
+        GNSS_DOPP_STD_THRES = fsSettings["gnss_dopp_std_thres"];
+        const double track_thres = fsSettings["gnss_track_num_thres"];
+        GNSS_TRACK_NUM_THRES = static_cast<uint32_t>(track_thres);
+        GNSS_DDT_WEIGHT = 1.0 / gnss_ddt_sigma;
+        GNSS_RESULT_PATH = OUTPUT_PATH + "/gnss_result.csv";
+        // clear output file
+        std::ofstream gnss_output(GNSS_RESULT_PATH, std::ios::out);
+        gnss_output.close();
         ROS_INFO_STREAM("GNSS enabled");
-    
+    }
+
     fsSettings.release();
 }

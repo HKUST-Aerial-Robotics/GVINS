@@ -24,16 +24,22 @@ projection_parameters:
    v0: 217.69105287172025
 
 gnss_enable: 1
-gnss_meas_topic: "/ublox_f9p/range_meas"
-gnss_ephem_topic: "/ublox_f9p/ephem"
-gnss_glo_ephem_topic: "/ublox_f9p/glo_ephem"
+gnss_meas_topic: "/ublox_driver/range_meas"           # GNSS raw measurement topic
+gnss_ephem_topic: "/ublox_driver/ephem"               # GPS, Galileo, BeiDou ephemeris
+gnss_glo_ephem_topic: "/ublox_driver/glo_ephem"       # GLONASS ephemeris
+gnss_iono_params_topic: "/ublox_driver/iono_params"   # GNSS broadcast ionospheric parameters
+gnss_tp_info_topic: "/ublox_driver/time_pulse_info"   # PPS time info
 gnss_elevation_thres: 30            # satellite elevation threshold (degree)
 gnss_psr_std_thres: 2.0             # pseudo-range std threshold
 gnss_dopp_std_thres: 2.0            # doppler std threshold
 gnss_track_num_thres: 20            # satellite tracking epochs
 gnss_ddt_sigma: 0.1
 
-gnss_iono_parameters: !!opencv-matrix
+gnss_local_online_sync: 1                       # if perform online synchronization betwen GNSS and local time
+local_trigger_info_topic: "/external_trigger"   # external trigger info of the local sensor, if `gnss_local_online_sync` is 1
+gnss_local_time_diff: 18.0                      # difference between GNSS and local time (s), if `gnss_local_online_sync` is 0
+
+gnss_iono_default_parameters: !!opencv-matrix
    rows: 1
    cols: 8
    dt: d

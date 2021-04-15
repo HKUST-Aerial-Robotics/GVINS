@@ -73,7 +73,8 @@ void Estimator::clearState()
     sat2time_index.clear();
     sat_track_status.clear();
     latest_gnss_iono_params.clear();
-    std::copy(gnss_iono_paras.begin(), gnss_iono_paras.end(), std::back_inserter(latest_gnss_iono_params));
+    std::copy(GNSS_IONO_DEFAULT_PARAMS.begin(), GNSS_IONO_DEFAULT_PARAMS.end(), 
+        std::back_inserter(latest_gnss_iono_params));
     diff_t_gnss_local = 0;
 
     optim_counter = 0;
