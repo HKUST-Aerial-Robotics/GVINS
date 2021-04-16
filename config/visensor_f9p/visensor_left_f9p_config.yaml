@@ -24,16 +24,22 @@ projection_parameters:
    v0: 217.69105287172025
 
 gnss_enable: 1
-gnss_meas_topic: "/ublox_f9p/range_meas"
-gnss_ephem_topic: "/ublox_f9p/ephem"
-gnss_glo_ephem_topic: "/ublox_f9p/glo_ephem"
+gnss_meas_topic: "/ublox_driver/range_meas"           # GNSS raw measurement topic
+gnss_ephem_topic: "/ublox_driver/ephem"               # GPS, Galileo, BeiDou ephemeris
+gnss_glo_ephem_topic: "/ublox_driver/glo_ephem"       # GLONASS ephemeris
+gnss_iono_params_topic: "/ublox_driver/iono_params"   # GNSS broadcast ionospheric parameters
+gnss_tp_info_topic: "/ublox_driver/time_pulse_info"   # PPS time info
 gnss_elevation_thres: 30            # satellite elevation threshold (degree)
 gnss_psr_std_thres: 2.0             # pseudo-range std threshold
 gnss_dopp_std_thres: 2.0            # doppler std threshold
-gnss_track_num_thres: 20            # satellite tracking epochs
+gnss_track_num_thres: 20            # number of satellite tracking epochs before entering estimator
 gnss_ddt_sigma: 0.1
 
-gnss_iono_parameters: !!opencv-matrix
+gnss_local_online_sync: 1                       # if perform online synchronization betwen GNSS and local time
+local_trigger_info_topic: "/external_trigger"   # external trigger info of the local sensor, if `gnss_local_online_sync` is 1
+gnss_local_time_diff: 18.0                      # difference between GNSS and local time (s), if `gnss_local_online_sync` is 0
+
+gnss_iono_default_parameters: !!opencv-matrix
    rows: 1
    cols: 8
    dt: d
@@ -81,21 +87,6 @@ acc_w: 0.00004         # accelerometer bias random work noise standard deviation
 gyr_w: 2.0e-6       # gyroscope bias random work noise standard deviation.     #4.0e-5
 g_norm: 9.787561     # gravity magnitude
 
-#loop closure parameters
-loop_closure: 1                    # start loop closure
-load_previous_pose_graph: 0        # load and reuse previous pose graph; load from 'pose_graph_save_path'
-fast_relocalization: 0             # useful in real-time and large project
-pose_graph_save_path: "/home/shaozu/output/pose_graph/" # save and load path
-
 #unsynchronization parameters
 estimate_td: 0                      # online estimate time offset between camera and imu
 td: 0.0                             # initial value of time offset. unit: s. readed image clock + td = real image clock (IMU clock)
-
-#rolling shutter parameters
-rolling_shutter: 0                  # 0: global shutter camera, 1: rolling shutter camera
-rolling_shutter_tr: 0               # unit: s. rolling shutter read out time per frame (from data sheet). 
-
-#visualization parameters
-save_image: 1                   # save image in pose graph for visualization prupose; you can close this function by setting 0 
-visualize_imu_forward: 0        # output imu forward propogation to achieve low latency and high frequence results
-visualize_camera_size: 0.4      # size of camera marker in RVIZ

@@ -5,12 +5,11 @@
 #include <mutex>
 #include <condition_variable>
 #include <ros/ros.h>
-#include <std_msgs/Float64MultiArray.h>
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/opencv.hpp>
 #include <gnss_comm/gnss_ros.hpp>
 #include <gnss_comm/gnss_utility.hpp>
-#include <gvins/visensor_external_trigger.h>
+#include <gvins/LocalSensorExternalTrigger.h>
 #include <sensor_msgs/NavSatFix.h>
 
 #include "estimator.h"
@@ -20,7 +19,6 @@
 using namespace gnss_comm;
 
 #define MAX_GNSS_CAMERA_DELAY 0.05
-#define LEAP_SECONDS 18
 
 std::unique_ptr<Estimator> estimator_ptr;
 
@@ -49,15 +47,14 @@ bool init_feature = 0;
 bool init_imu = 1;
 double last_imu_t = -1;
 
-// time sync between visensor and GNSS
 std::mutex m_time;
 double next_pulse_time;
 bool next_pulse_time_valid;
-double time_diff_gnss_visensor;
+double time_diff_gnss_local;
 bool time_diff_valid;
 double latest_gnss_time;
-double last_feature_time;
-uint64_t feature_counter;
+double tmp_last_feature_time;
+uint64_t feature_msg_counter;
 int skip_parameter;
 
 void predict(const sensor_msgs::ImuConstPtr &imu_msg)
@@ -140,7 +137,7 @@ getMeasurements(std::vector<sensor_msgs::ImuConstPtr> &imu_msg, sensor_msgs::Poi
 
     if (GNSS_ENABLE)
     {
-        front_feature_ts += time_diff_gnss_visensor;
+        front_feature_ts += time_diff_gnss_local;
         double front_gnss_ts = time2sec(gnss_meas_buf.front()[0]->time);
         while (!gnss_meas_buf.empty() && front_gnss_ts < front_feature_ts-MAX_GNSS_CAMERA_DELAY)
         {
@@ -213,9 +210,9 @@ void gnss_glo_ephem_callback(const GnssGloEphemMsgConstPtr &glo_ephem_msg)
     estimator_ptr->inputEphem(glo_ephem);
 }
 
-void gnss_iono_params_callback(const std_msgs::Float64MultiArrayConstPtr &iono_msg)
+void gnss_iono_params_callback(const StampedFloat64ArrayConstPtr &iono_msg)
 {
-    double ts = 1.0 * (iono_msg->layout.data_offset);
+    double ts = iono_msg->header.stamp.toSec();
     std::vector<double> iono_params;
     std::copy(iono_msg->data.begin(), iono_msg->data.end(), std::back_inserter(iono_params));
     assert(iono_params.size() == 8);
@@ -239,23 +236,23 @@ void gnss_meas_callback(const GnssMeasMsgConstPtr &meas_msg)
 
 void feature_callback(const sensor_msgs::PointCloudConstPtr &feature_msg)
 {
-    ++ feature_counter;
+    ++ feature_msg_counter;
 
-    if (time_diff_valid)
+    if (skip_parameter < 0 && time_diff_valid)
     {
-        const double this_feature_ts = feature_msg->header.stamp.toSec()+time_diff_gnss_visensor;
-        if (skip_parameter < 0 && latest_gnss_time > 0 && last_feature_time > 0)
+        const double this_feature_ts = feature_msg->header.stamp.toSec()+time_diff_gnss_local;
+        if (latest_gnss_time > 0 && tmp_last_feature_time > 0)
         {
-            if (abs(this_feature_ts - latest_gnss_time) > abs(last_feature_time - latest_gnss_time))
-                skip_parameter = feature_counter%2;       // skip this frame and afterwards
+            if (abs(this_feature_ts - latest_gnss_time) > abs(tmp_last_feature_time - latest_gnss_time))
+                skip_parameter = feature_msg_counter%2;       // skip this frame and afterwards
             else
-                skip_parameter = 1 - (feature_counter%2);   // skip next frame and afterwards
+                skip_parameter = 1 - (feature_msg_counter%2);   // skip next frame and afterwards
         }
-        // cerr << "feature counter is " << feature_counter << ", skip parameter is " << int(skip_parameter) << endl;
-        last_feature_time = this_feature_ts;
+        // cerr << "feature counter is " << feature_msg_counter << ", skip parameter is " << int(skip_parameter) << endl;
+        tmp_last_feature_time = this_feature_ts;
     }
 
-    if (!GNSS_ENABLE || (skip_parameter >= 0 && int(feature_counter%2) != skip_parameter))
+    if (skip_parameter >= 0 && int(feature_msg_counter%2) != skip_parameter)
     {
         m_buf.lock();
         feature_buf.push(feature_msg);
@@ -264,26 +261,37 @@ void feature_callback(const sensor_msgs::PointCloudConstPtr &feature_msg)
     }
 }
 
-void visensor_trigger_callback(const gvins::visensor_external_triggerConstPtr &trigger_msg)
+void local_trigger_info_callback(const gvins::LocalSensorExternalTriggerConstPtr &trigger_msg)
 {
     std::lock_guard<std::mutex> lg(m_time);
 
     if (next_pulse_time_valid)
     {
-        // pps time is expressed in UTC time at default setting
-        time_diff_gnss_visensor = next_pulse_time - trigger_msg->header.stamp.toSec() + LEAP_SECONDS;
-        estimator_ptr->inputGNSSTimeDiff(time_diff_gnss_visensor);
-        if (!time_diff_valid)
-            std::cout << "time difference between GNSS and VI-Sensor got calibrated\n";
-        // cerr << "time diff is " << std::setprecision(15) << time_diff_gnss_visensor << std::endl;
+        time_diff_gnss_local = next_pulse_time - trigger_msg->header.stamp.toSec();
+        estimator_ptr->inputGNSSTimeDiff(time_diff_gnss_local);
+        if (!time_diff_valid)       // just get calibrated
+            std::cout << "time difference between GNSS and VI-Sensor got calibrated: "
+                << std::setprecision(15) << time_diff_gnss_local << " s\n";
         time_diff_valid = true;
     }
 }
 
-void gnss_time_pulse_callback(const GnssTimePulseInfoMsgConstPtr &tp_msg)
+void gnss_tp_info_callback(const GnssTimePulseInfoMsgConstPtr &tp_msg)
 {
-    double gnss_ts = time2sec(gpst2time(tp_msg->time.week, tp_msg->time.tow));
-    // cerr << "time pulse ts is " << std::setprecision(20) << gnss_ts << endl;
+    gtime_t tp_time = gpst2time(tp_msg->time.week, tp_msg->time.tow);
+    if (tp_msg->utc_based || tp_msg->time_sys == SYS_GLO)
+        tp_time = utc2gpst(tp_time);
+    else if (tp_msg->time_sys == SYS_GAL)
+        tp_time = gst2time(tp_msg->time.week, tp_msg->time.tow);
+    else if (tp_msg->time_sys == SYS_BDS)
+        tp_time = bdt2time(tp_msg->time.week, tp_msg->time.tow);
+    else if (tp_msg->time_sys == SYS_NONE)
+    {
+        std::cerr << "Unknown time system in GNSSTimePulseInfoMsg.\n";
+        return;
+    }
+    double gnss_ts = time2sec(tp_time);
+
     std::lock_guard<std::mutex> lg(m_time);
     next_pulse_time = gnss_ts;
     next_pulse_time_valid = true;
@@ -310,7 +318,6 @@ void restart_callback(const std_msgs::BoolConstPtr &restart_msg)
     return;
 }
 
-// thread: visual-inertial odometry
 void process()
 {
     while (true)
@@ -428,27 +435,47 @@ int main(int argc, char **argv)
 #ifdef EIGEN_DONT_PARALLELIZE
     ROS_DEBUG("EIGEN_DONT_PARALLELIZE");
 #endif
-    ROS_WARN("waiting for image and imu...");
 
     registerPub(n);
 
     next_pulse_time_valid = false;
     time_diff_valid = false;
     latest_gnss_time = -1;
-    last_feature_time = -1;
-    feature_counter = 0;
-    skip_parameter = -1;
+    tmp_last_feature_time = -1;
+    feature_msg_counter = 0;
+
+    if (GNSS_ENABLE)
+        skip_parameter = -1;
+    else
+        skip_parameter = 0;
 
     ros::Subscriber sub_imu = n.subscribe(IMU_TOPIC, 2000, imu_callback, ros::TransportHints().tcpNoDelay());
-    ros::Subscriber sub_image = n.subscribe("/gvins_feature_tracker/feature", 2000, feature_callback);
+    ros::Subscriber sub_feature = n.subscribe("/gvins_feature_tracker/feature", 2000, feature_callback);
     ros::Subscriber sub_restart = n.subscribe("/gvins_feature_tracker/restart", 2000, restart_callback);
 
-    ros::Subscriber sub_ephem = n.subscribe(GNSS_EPHEM_TOPIC, 100, gnss_ephem_callback);
-    ros::Subscriber sub_glo_ephem = n.subscribe(GNSS_GLO_EPHEM_TOPIC, 100, gnss_glo_ephem_callback);
-    ros::Subscriber sub_gnss_meas = n.subscribe(GNSS_MEAS_TOPIC, 100, gnss_meas_callback);
-    ros::Subscriber sub_gnss_iono_params = n.subscribe("/ublox_f9p/iono_params", 100, gnss_iono_params_callback);
-    ros::Subscriber sub_gnss_time_pluse = n.subscribe("/ublox_f9p/time_pulse_info", 100, gnss_time_pulse_callback);
-    ros::Subscriber sub_visensor_trigger = n.subscribe("/external_trigger", 100, visensor_trigger_callback);
+    ros::Subscriber sub_ephem, sub_glo_ephem, sub_gnss_meas, sub_gnss_iono_params;
+    ros::Subscriber sub_gnss_time_pluse_info, sub_local_trigger_info;
+    if (GNSS_ENABLE)
+    {
+        sub_ephem = n.subscribe(GNSS_EPHEM_TOPIC, 100, gnss_ephem_callback);
+        sub_glo_ephem = n.subscribe(GNSS_GLO_EPHEM_TOPIC, 100, gnss_glo_ephem_callback);
+        sub_gnss_meas = n.subscribe(GNSS_MEAS_TOPIC, 100, gnss_meas_callback);
+        sub_gnss_iono_params = n.subscribe(GNSS_IONO_PARAMS_TOPIC, 100, gnss_iono_params_callback);
+
+        if (GNSS_LOCAL_ONLINE_SYNC)
+        {
+            sub_gnss_time_pluse_info = n.subscribe(GNSS_TP_INFO_TOPIC, 100, 
+                gnss_tp_info_callback);
+            sub_local_trigger_info = n.subscribe(LOCAL_TRIGGER_INFO_TOPIC, 100, 
+                local_trigger_info_callback);
+        }
+        else
+        {
+            time_diff_gnss_local = GNSS_LOCAL_TIME_DIFF;
+            estimator_ptr->inputGNSSTimeDiff(time_diff_gnss_local);
+            time_diff_valid = true;
+        }
+    }
 
     std::thread measurement_process{process};
     ros::spin();

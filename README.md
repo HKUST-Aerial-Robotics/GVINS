@@ -2,6 +2,8 @@
 
 GVINS: Tightly Coupled GNSS-Visual-Inertial Fusion for Smooth and Consistent State Estimation. [paper link](https://arxiv.org/pdf/2103.07899.pdf)
 
+Authors: Shaozu CAO, Xiuyuan LU and Shaojie SHEN
+
 ![](./figures/system_snapshot.png)
 
 **GVINS** is a non-linear optimization based system that tightly fuses GNSS raw measurements with visual and inertial information for real-time and drift-free state estimation. By incorporating GNSS pseudorange and Doppler shift measurements, GVINS is capable to provide smooth and consistent 6-DoF global localization in complex environment. The system framework and VIO part are adapted from [VINS-Mono](https://github.com/HKUST-Aerial-Robotics/VINS-Mono). Our system contains the following features:
@@ -47,21 +49,27 @@ To simplify the building process, we add docker in our code. Docker is like a sa
 cd ~/catkin_ws/src/GVINS/docker
 make build
 ```
-The docker image `gvins:latest` should be successfully built after a while. Then you can run GVINS with script `./run.sh LAUNCH_FILE` (for example `./run.sh visensor_f9p.launch`). Open another terminal and play your rosbag file, then you should be able to see the result. If you modify the code, simply re-run `./run.sh LAUNCH_FILE`.
+The docker image `gvins:latest` should be successfully built after a while. Then you can run GVINS with:
+```
+./run.sh LAUNCH_FILE
+``` 
+(for example `./run.sh visensor_f9p.launch`). Open another terminal and play your rosbag file, then you should be able to see the result. If you modify the code, simply re-run `./run.sh LAUNCH_FILE` to update.
 
 
 ## 4. Run GVINS with our dataset
-Download our GNSS-Visual-Inertial dataset as described in [the next section](#GVINS_dataset). Then launch GVINS via:
+
+Download our [GVINS-Dataset](https://github.com/HKUST-Aerial-Robotics/GVINS-Dataset) and launch GVINS via:
 ```
 roslaunch gvins visensor_f9p.launch
 ```
-Subscribe `/gvins/gnss_enu_path` in your rviz and play the bag:
+Open another terminal and launch the rviz by:
+```
+rviz -d ~/catkin_ws/src/GVINS/config/gvins_rviz_config.rviz
+```
+Then play the bag:
 ```
 rosbag play sports_field.bag
 ```
-
-## 5. <a name="GVINS_dataset"></a>GNSS-Visual-Inertial dataset
-We published our GNSS-Visual-Inertial dataset at [rosbag_1](https://hkustconnect-my.sharepoint.com/:u:/g/personal/scaoad_connect_ust_hk/EbjRwwyRLDlOtfMVJ57MMl8Bm-jkc3rBG5HVDqvTcAAiPg?e=r5kSw8) and [rosbag_2](https://hkustconnect-my.sharepoint.com/:u:/g/personal/scaoad_connect_ust_hk/ERn2tlHnWiVDjvLSml9TgH0B6LnXLcYPd3d7toJovLRL8g?e=hRem3Y). The visual and inertial data are collected using a [VI-Sensor](https://github.com/ethz-asl/libvisensor), and the GNSS raw measurement is provided by a [u-blox ZED-F9P receiver](https://www.u-blox.com/en/product/zed-f9p-module). The RTCM stream from a 3km-away base station is fed to the GNSS receiver for RTK solution. In addition, the time synchronization between VI-Sensor and ZED-F9P is achieved via hardware trigger.
 
 
 ## 6. Acknowledgements

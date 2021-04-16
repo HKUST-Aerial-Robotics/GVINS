@@ -11,7 +11,6 @@
 #include "initial/initial_ex_rotation.h"
 #include "initial/gnss_vi_initializer.h"
 #include <std_msgs/Header.h>
-#include <std_msgs/Float32.h>
 
 #include <ceres/ceres.h>
 #include "factor/imu_factor.h"
@@ -84,8 +83,8 @@ class Estimator
     SolverFlag solver_flag;
     MarginalizationFlag  marginalization_flag;
     Vector3d g;
-    MatrixXd Ap[2], backup_A;
-    VectorXd bp[2], backup_b;
+    // MatrixXd Ap[2];
+    // VectorXd bp[2];
 
     Matrix3d ric[NUM_OF_CAM];
     Vector3d tic[NUM_OF_CAM];
@@ -128,8 +127,6 @@ class Estimator
     Eigen::Matrix3d R_enu_local;
     Eigen::Vector3d ecef_pos, enu_pos, enu_vel, enu_ypr;
 
-    bool first_ever_optimization;
-
     int frame_count;
     int sum_of_outlier, sum_of_back, sum_of_front, sum_of_invalid;
 
@@ -150,11 +147,7 @@ class Estimator
     double para_SpeedBias[WINDOW_SIZE + 1][SIZE_SPEEDBIAS];
     double para_Feature[NUM_OF_F][SIZE_FEATURE];
     double para_Ex_Pose[NUM_OF_CAM][SIZE_POSE];
-    double para_Retrive_Pose[SIZE_POSE];
     double para_Td[1][1];
-    double para_Tr[1][1];
-
-    int loop_window_index;
 
     MarginalizationInfo *last_marginalization_info;
     vector<double *> last_marginalization_parameter_blocks;
@@ -162,20 +155,5 @@ class Estimator
     map<double, ImageFrame> all_image_frame;
     IntegrationBase *tmp_pre_integration;
 
-    uint32_t optim_counter;
-
-    //relocalization variable
-    bool relocalization_info;
-    double relo_frame_stamp;
-    double relo_frame_index;
-    int relo_frame_local_index;
-    vector<Vector3d> match_points;
-    double relo_Pose[SIZE_POSE];
-    Matrix3d drift_correct_r;
-    Vector3d drift_correct_t;
-    Vector3d prev_relo_t;
-    Matrix3d prev_relo_r;
-    Vector3d relo_relative_t;
-    Quaterniond relo_relative_q;
-    double relo_relative_yaw;
+    bool first_optimization;
 };
