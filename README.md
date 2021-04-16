@@ -57,7 +57,6 @@ The docker image `gvins:latest` should be successfully built after a while. Then
 
 
 ## 4. Run GVINS with our dataset
-
 Download our [GVINS-Dataset](https://github.com/HKUST-Aerial-Robotics/GVINS-Dataset) and launch GVINS via:
 ```
 roslaunch gvins visensor_f9p.launch
@@ -71,9 +70,8 @@ Then play the bag:
 rosbag play sports_field.bag
 ```
 
-
-## 6. Acknowledgements
+## 5. Acknowledgements
 The system framework and VIO part are adapted from [VINS-Mono](https://github.com/HKUST-Aerial-Robotics/VINS-Mono). We use [camodocal](https://github.com/hengli/camodocal) to model the camera and [ceres](http://ceres-solver.org/) to solve the optimization problem.
 
-## 7. Licence
+## 6. Licence
 The source code is released under [GPLv3](https://www.gnu.org/licenses/gpl-3.0.html) license.
