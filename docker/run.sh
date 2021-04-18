@@ -39,7 +39,7 @@ docker run \
   --rm \
   --net=host \
   -v ${GVINS_DIR}:/root/catkin_ws/src/GVINS/ \
-  ros:gvins \
+  gvins:latest \
   /bin/bash -c \
   "cd /root/catkin_ws/; \
   catkin config \

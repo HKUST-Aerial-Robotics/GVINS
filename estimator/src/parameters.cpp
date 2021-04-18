@@ -73,16 +73,23 @@ void readParameters(ros::NodeHandle &n)
     MIN_PARALLAX = fsSettings["keyframe_parallax"];
     MIN_PARALLAX = MIN_PARALLAX / FOCAL_LENGTH;
 
-    std::string OUTPUT_PATH;
-    fsSettings["output_path"] >> OUTPUT_PATH;
-    FileSystemHelper::createDirectoryIfNotExists(OUTPUT_PATH.c_str());
+    std::string tmp_output_dir;
+    fsSettings["output_dir"] >> tmp_output_dir;
+    assert(!tmp_output_dir.empty() && "Output directory cannot be empty.\n");
+    if (tmp_output_dir[0] == '~')
+        tmp_output_dir.replace(0, 1, getenv("HOME"));
+    char actual_output_dir[PATH_MAX+1];
+    if(!realpath(tmp_output_dir.c_str(), actual_output_dir))
+        std::cerr << "ERROR: Failed to obtain the real path of " << tmp_output_dir << '\n';
+    std::string OUTPUT_DIR(actual_output_dir);
+    FileSystemHelper::createDirectoryIfNotExists(OUTPUT_DIR.c_str());
 
-    VINS_RESULT_PATH = OUTPUT_PATH + "/vins_result_no_loop.csv";
+    VINS_RESULT_PATH = OUTPUT_DIR + "/vins_result_no_loop.csv";
     std::ofstream fout1(VINS_RESULT_PATH, std::ios::out);
     fout1.close();
     std::cout << "result path " << VINS_RESULT_PATH << std::endl;
 
-    FACTOR_GRAPH_RESULT_PATH = OUTPUT_PATH + "/factor_graph_result.txt";
+    FACTOR_GRAPH_RESULT_PATH = OUTPUT_DIR + "/factor_graph_result.txt";
     std::ofstream fout2(FACTOR_GRAPH_RESULT_PATH, std::ios::out);
     fout2.close();
 
@@ -101,7 +108,7 @@ void readParameters(ros::NodeHandle &n)
         ROS_WARN("have no prior about extrinsic param, calibrate extrinsic param");
         RIC.push_back(Eigen::Matrix3d::Identity());
         TIC.push_back(Eigen::Vector3d::Zero());
-        EX_CALIB_RESULT_PATH = OUTPUT_PATH + "/extrinsic_parameter.csv";
+        EX_CALIB_RESULT_PATH = OUTPUT_DIR + "/extrinsic_parameter.csv";
 
     }
     else 
@@ -109,7 +116,7 @@ void readParameters(ros::NodeHandle &n)
         if ( ESTIMATE_EXTRINSIC == 1)
         {
             ROS_WARN(" Optimize extrinsic param around initial guess!");
-            EX_CALIB_RESULT_PATH = OUTPUT_PATH + "/extrinsic_parameter.csv";
+            EX_CALIB_RESULT_PATH = OUTPUT_DIR + "/extrinsic_parameter.csv";
         }
         if (ESTIMATE_EXTRINSIC == 0)
             ROS_WARN(" fix extrinsic param ");
@@ -172,7 +179,7 @@ void readParameters(ros::NodeHandle &n)
         const double track_thres = fsSettings["gnss_track_num_thres"];
         GNSS_TRACK_NUM_THRES = static_cast<uint32_t>(track_thres);
         GNSS_DDT_WEIGHT = 1.0 / gnss_ddt_sigma;
-        GNSS_RESULT_PATH = OUTPUT_PATH + "/gnss_result.csv";
+        GNSS_RESULT_PATH = OUTPUT_DIR + "/gnss_result.csv";
         // clear output file
         std::ofstream gnss_output(GNSS_RESULT_PATH, std::ios::out);
         gnss_output.close();

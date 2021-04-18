@@ -3,7 +3,7 @@
 #common parameters
 imu_topic: "/imu0"
 image_topic: "/cam1/image_raw"
-output_path: "/home/shaozu/output/"
+output_dir: "~/output/"
 
 #camera calibration 
 model_type: MEI

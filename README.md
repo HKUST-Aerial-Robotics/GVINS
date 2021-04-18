@@ -44,7 +44,7 @@ source ~/catkin_ws/devel/setup.bash
 If you encounter any problem during the building of GVINS, we recommend you to [try docker](#docker_section) first.
 
 ## 3. <a name="docker_section"></a>Docker Support
-To simplify the building process, we add docker in our code. Docker is like a sandbox so it can isolate our code from your local environment. To run with docker, first make sure [ros](http://wiki.ros.org/ROS/Installation) and [docker](https://docs.docker.com/get-docker/) are installed on your machine. Then add your account to `docker` group by `sudo usermod -aG docker $USER`. **Relaunch the terminal or logout and re-login if you get *Permission denied* error**, type:
+To simplify the building process, we add docker in our code. Docker is like a sandbox so it can isolate our code from your local environment. To run with docker, first make sure [ros](http://wiki.ros.org/ROS/Installation) and [docker](https://docs.docker.com/get-docker/) are installed on your machine. Then add your account to `docker` group by `sudo usermod -aG docker $USER`. **Logout and re-login to avoid the *Permission denied* error**, then type:
 ```
 cd ~/catkin_ws/src/GVINS/docker
 make build
