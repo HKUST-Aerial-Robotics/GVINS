@@ -70,8 +70,17 @@ Then play the bag:
 rosbag play sports_field.bag
 ```
 
-## 5. Acknowledgements
-The system framework and VIO part are adapted from [VINS-Mono](https://github.com/HKUST-Aerial-Robotics/VINS-Mono). We use [camodocal](https://github.com/hengli/camodocal) to model the camera and [ceres](http://ceres-solver.org/) to solve the optimization problem.
+## 5. Run GVINS with your device
 
-## 6. Licence
+
+1. Setup the visual-inertial sensor suit according to [these instructions](https://github.com/HKUST-Aerial-Robotics/VINS-Mono#5-run-with-your-device);
+2. Configure your GNSS receiver to output raw measurement and ephemeris and convert them as ros messages. If you are using u-blox receiver, please checkout our [ublox_driver](https://github.com/HKUST-Aerial-Robotics/ublox_driver) package;
+3. Deal with the synchronization between visual-inertial sensor and GNSS receiver. A coarse synchronization can be done via [ublox_driver](https://github.com/HKUST-Aerial-Robotics/ublox_driver) but the accuracy is not guaranteed. For better performance, we recommend hardware synchronization via receiver's PPS signal;
+4. Change the topic name in the config file and create a launch file pointing to the corresponding config file. Launch the GVINS with `roslaunch gvins YOUR_LAUNCH_FILE.launch`.
+
+
+## 6. Acknowledgements
+The system framework and VIO part are adapted from [VINS-Mono](https://github.com/HKUST-Aerial-Robotics/VINS-Mono). We use [camodocal](https://github.com/hengli/camodocal) for camera modelling and [ceres](http://ceres-solver.org/) to solve the optimization problem.
+
+## 7. Licence
 The source code is released under [GPLv3](https://www.gnu.org/licenses/gpl-3.0.html) license.
