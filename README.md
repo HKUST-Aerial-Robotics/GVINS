@@ -13,6 +13,10 @@ Authors: Shaozu CAO, Xiuyuan LU and Shaojie SHEN
 - online local-ENU frame alignment;
 - global pose recovery in GNSS-unfriendly or even GNSS-denied area.
 
+**Video:**
+
+[![GVINS Video](http://img.youtube.com/vi/tEQN70AX68U/0.jpg)](http://www.youtube.com/watch?v=tEQN70AX68U "GVINS Video")
+
 ## 1. Prerequisites
 ### 1.1 C++11 Compiler
 This package requires some features of C++11.
