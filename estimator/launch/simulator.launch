@@ -1,11 +1,11 @@
 <launch>
     <arg name="config_path" default = "$(find gvins)/../config/simulator/simulator_config.yaml" />
-	  <arg name="vins_path" default = "$(find gvins)/../config/../" />
+	  <arg name="gvins_path" default = "$(find gvins)/../" />
 
     <remap from="/gvins_feature_tracker/feature" to="/simulator/feature" />
     <node name="gvins" pkg="gvins" type="gvins" output="screen">
        <param name="config_file" type="string" value="$(arg config_path)" />
-       <param name="vins_folder" type="string" value="$(arg vins_path)" />
+       <param name="gvins_folder" type="string" value="$(arg gvins_path)" />
     </node>
 
 </launch>

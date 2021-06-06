@@ -1,6 +1,6 @@
 <launch>
     <arg name="config_path" default = "$(find gvins)/../config/visensor_f9p/visensor_left_f9p_config.yaml" />
-	  <arg name="gvins_path" default = "$(find gvins)/../config/../" />
+	  <arg name="gvins_path" default = "$(find gvins)/../" />
     
     <node name="gvins_feature_tracker" pkg="gvins_feature_tracker" type="gvins_feature_tracker" output="log">
         <param name="config_file" type="string" value="$(arg config_path)" />
