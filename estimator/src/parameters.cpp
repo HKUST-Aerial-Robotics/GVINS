@@ -158,7 +158,7 @@ void readParameters(ros::NodeHandle &n)
         fsSettings["gnss_meas_topic"] >> GNSS_MEAS_TOPIC;
         fsSettings["gnss_iono_params_topic"] >> GNSS_IONO_PARAMS_TOPIC;
         cv::Mat cv_iono;
-        fsSettings["gnss_iono_parameters"] >> cv_iono;
+        fsSettings["gnss_iono_default_parameters"] >> cv_iono;
         Eigen::Matrix<double, 1, 8> eigen_iono;
         cv::cv2eigen(cv_iono, eigen_iono);
         for (uint32_t i = 0; i < 8; ++i)
