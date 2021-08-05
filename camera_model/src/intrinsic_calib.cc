@@ -233,11 +233,18 @@ int main(int argc, char** argv)
         // visualize observed and reprojected points
         calibration.drawResults(cbImages);
 
+        int flag_antialiasing;
+        #if (CV_VERSION_MAJOR >= 4)
+            flag_antialiasing = cv::LINE_AA;
+        #else
+            flag_antialiasing = CV_AA;
+        #endif
+
         for (size_t i = 0; i < cbImages.size(); ++i)
         {
             cv::putText(cbImages.at(i), cbImageFilenames.at(i), cv::Point(10,20),
                         cv::FONT_HERSHEY_COMPLEX, 0.5, cv::Scalar(255, 255, 255),
-                        1, CV_AA);
+                        1, flag_antialiasing);
             cv::imshow("Image", cbImages.at(i));
             cv::waitKey(0);
         }
