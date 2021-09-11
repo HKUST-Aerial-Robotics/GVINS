@@ -28,7 +28,9 @@ This package is developed under [ROS Kinetic](http://wiki.ros.org/kinetic) envir
 Our code uses [Eigen 3.3.3](https://gitlab.com/libeigen/eigen/-/archive/3.3.3/eigen-3.3.3.zip) for matrix manipulation.
 
 ### 1.4 Ceres
-We use [ceres](https://ceres-solver.googlesource.com/ceres-solver) 1.12.0 to solve the non-linear optimization problem.
+We use [ceres](https://ceres-solver.googlesource.com/ceres-solver) to solve the non-linear optimization problem. Please make sure you are using version 1.12.0 (more recent versions, such as 2.0.0, will lead to compilation errors).
+
+In order to install ceres, please download [version 1.12.0 here](https://github.com/ceres-solver/ceres-solver/archive/refs/tags/1.12.0.tar.gz). You can then follow [those instructions](http://ceres-solver.org/installation.html) to build and install ceres on your system.
 
 ### 1.5 gnss_comm
 This package also requires [gnss_comm](https://github.com/HKUST-Aerial-Robotics/gnss_comm) for ROS message definitions and some utility functions. Follow [those instructions](https://github.com/HKUST-Aerial-Robotics/gnss_comm#2-build-gnss_comm-library) to build the *gnss_comm* package.
