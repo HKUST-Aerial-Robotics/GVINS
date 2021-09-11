@@ -15,7 +15,7 @@ Authors: Shaozu CAO, Xiuyuan LU and Shaojie SHEN
 
 **Video:**
 
-[![GVINS Video](http://img.youtube.com/vi/tEQN70AX68U/0.jpg)](http://www.youtube.com/watch?v=tEQN70AX68U "GVINS Video")
+[![GVINS Video](http://img.youtube.com/vi/tEQN70AX68U/0.jpg)](https://www.youtube.com/watch?v=TebAal1ARnk "GVINS Video")
 
 ## 1. Prerequisites
 ### 1.1 C++11 Compiler
